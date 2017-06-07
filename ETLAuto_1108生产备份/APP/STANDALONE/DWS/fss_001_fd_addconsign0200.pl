@@ -1,0 +1,265 @@
+#!/usr/bin/perl
+
+use strict;     # Declare using Perl strict syntax
+use DBI;        # If you are using other package, declare here
+
+# ------------ Variable Section ------------
+my ${AUTO_HOME} = $ENV{"AUTO_HOME"};
+
+my ${WML_DB} = $ENV{"AUTO_WML_DB"};
+if ( !defined(${WML_DB}) ) {
+    ${WML_DB} = "WML";
+}
+my ${WTL_DB} = $ENV{"AUTO_WTL_DB"};
+if ( !defined(${WTL_DB}) ) {
+    ${WTL_DB} = "WTL";
+}
+my ${WMLVIEW_DB} = $ENV{"AUTO_WMLVIEW_DB"};
+if ( !defined(${WMLVIEW_DB}) ) {
+    ${WMLVIEW_DB} = "WMLVIEW";
+}
+my ${WTLVIEW_DB} = $ENV{"AUTO_WTLVIEW_DB"};
+if ( !defined(${WTLVIEW_DB}) ) {
+    ${WTLVIEW_DB} = "WTLVIEW";
+}
+
+my ${NULL_DATE} = "1900-01-02";
+my ${MIN_DATE} = "1900-01-01";
+my ${MAX_DATE} = "2100-12-31";
+
+my ${LOGON_FILE} = "${AUTO_HOME}/etc/VERTICA_LOGON";
+my ${LOGON_STR};
+my ${CONTROL_FILE};
+my ${TX_DATE};
+my ${TX_DATE_YYYYMMDD};
+my ${TX_MON_DAY_MMDD};
+
+# ------------ VSQL function ------------
+sub run_vsql_command
+{
+  #my $rc = open(VSQL, "${LOGON_STR}");
+  my $rc = open(VSQL, "|vsql -h 22.224.65.171 -p 5433 -d CPCIMDB_TEST -U dwtrans -w dwtrans2016");
+
+  unless ($rc) {
+      print "Could not invoke VSQL command
+";
+      return -1;
+  }
+
+# ------ Below are VSQL scripts ----------
+  print VSQL <<ENDOFINPUT;
+
+\\set ON_ERROR_STOP on
+
+--Step0:
+DELETE FROM dw_sdata.FSS_001_FD_ADDCONSIGN WHERE start_dt>=DATE('${TX_DATE_YYYYMMDD}');
+UPDATE dw_sdata.FSS_001_FD_ADDCONSIGN SET end_dt=DATE('2100-12-31') WHERE end_dt>=DATE('${TX_DATE_YYYYMMDD}') AND end_dt<>DATE('2100-12-31');
+
+--Step1:
+CREATE LOCAL TEMPORARY TABLE  T_185 ON COMMIT PRESERVE ROWS AS SELECT * FROM dw_sdata.FSS_001_FD_ADDCONSIGN WHERE 1=0;
+
+--Step2:
+INSERT  INTO T_185 (
+  CUSTOMERID,
+  BUSINESSTYPECODE,
+  AGENTCORPCODE,
+  CUSTOMERNO,
+  CONSIGNDATE,
+  CONSIGNMODE,
+  BATCHSERIAL,
+  GREENACCTNO,
+  ACCTFLAG,
+  OPENORGANCODE,
+  OTHERID,
+  POSTBILLFLAG,
+  POSTBILLMODE,
+  DETAINNOTICE,
+  TAFLAG,
+  TAACCTFLAG,
+  BONUSMODE,
+  MAINGREENACCTNO,
+  MOTIFYDATE,
+  PAPER_NO,
+  CHNLNO,
+  YZADDFLAG,
+  start_dt,
+  end_dt)
+SELECT
+  N.CUSTOMERID,
+  N.BUSINESSTYPECODE,
+  N.AGENTCORPCODE,
+  N.CUSTOMERNO,
+  N.CONSIGNDATE,
+  N.CONSIGNMODE,
+  N.BATCHSERIAL,
+  N.GREENACCTNO,
+  N.ACCTFLAG,
+  N.OPENORGANCODE,
+  N.OTHERID,
+  N.POSTBILLFLAG,
+  N.POSTBILLMODE,
+  N.DETAINNOTICE,
+  N.TAFLAG,
+  N.TAACCTFLAG,
+  N.BONUSMODE,
+  N.MAINGREENACCTNO,
+  N.MOTIFYDATE,
+  N.PAPER_NO,
+  N.CHNLNO,
+  N.YZADDFLAG,
+  DATE('${TX_DATE_YYYYMMDD}'),
+  DATE('2100-12-31')
+FROM 
+ (SELECT
+  COALESCE(CUSTOMERID, '' ) AS CUSTOMERID ,
+  COALESCE(BUSINESSTYPECODE, '' ) AS BUSINESSTYPECODE ,
+  COALESCE(AGENTCORPCODE, '' ) AS AGENTCORPCODE ,
+  COALESCE(CUSTOMERNO, '' ) AS CUSTOMERNO ,
+  COALESCE(CONSIGNDATE, '' ) AS CONSIGNDATE ,
+  COALESCE(CONSIGNMODE, '' ) AS CONSIGNMODE ,
+  COALESCE(BATCHSERIAL, '' ) AS BATCHSERIAL ,
+  COALESCE(GREENACCTNO, '' ) AS GREENACCTNO ,
+  COALESCE(ACCTFLAG, '' ) AS ACCTFLAG ,
+  COALESCE(OPENORGANCODE, '' ) AS OPENORGANCODE ,
+  COALESCE(OTHERID, '' ) AS OTHERID ,
+  COALESCE(POSTBILLFLAG, '' ) AS POSTBILLFLAG ,
+  COALESCE(POSTBILLMODE, '' ) AS POSTBILLMODE ,
+  COALESCE(DETAINNOTICE, '' ) AS DETAINNOTICE ,
+  COALESCE(TAFLAG, '' ) AS TAFLAG ,
+  COALESCE(TAACCTFLAG, '' ) AS TAACCTFLAG ,
+  COALESCE(BONUSMODE, '' ) AS BONUSMODE ,
+  COALESCE(MAINGREENACCTNO, '' ) AS MAINGREENACCTNO ,
+  COALESCE(MOTIFYDATE, '' ) AS MOTIFYDATE ,
+  COALESCE(PAPER_NO, '' ) AS PAPER_NO ,
+  COALESCE(CHNLNO, '' ) AS CHNLNO ,
+  COALESCE(YZADDFLAG, '' ) AS YZADDFLAG 
+ FROM  dw_tdata.FSS_001_FD_ADDCONSIGN_${TX_DATE_YYYYMMDD}) N
+LEFT JOIN
+ (SELECT 
+  CUSTOMERID ,
+  BUSINESSTYPECODE ,
+  AGENTCORPCODE ,
+  CUSTOMERNO ,
+  CONSIGNDATE ,
+  CONSIGNMODE ,
+  BATCHSERIAL ,
+  GREENACCTNO ,
+  ACCTFLAG ,
+  OPENORGANCODE ,
+  OTHERID ,
+  POSTBILLFLAG ,
+  POSTBILLMODE ,
+  DETAINNOTICE ,
+  TAFLAG ,
+  TAACCTFLAG ,
+  BONUSMODE ,
+  MAINGREENACCTNO ,
+  MOTIFYDATE ,
+  PAPER_NO ,
+  CHNLNO ,
+  YZADDFLAG 
+ FROM dw_sdata.FSS_001_FD_ADDCONSIGN 
+ WHERE END_DT = DATE('2100-12-31') ) T
+ON N.CUSTOMERID = T.CUSTOMERID AND N.BUSINESSTYPECODE = T.BUSINESSTYPECODE AND N.AGENTCORPCODE = T.AGENTCORPCODE AND N.CUSTOMERNO = T.CUSTOMERNO
+WHERE
+(T.CUSTOMERID IS NULL AND T.BUSINESSTYPECODE IS NULL AND T.AGENTCORPCODE IS NULL AND T.CUSTOMERNO IS NULL)
+ OR N.CONSIGNDATE<>T.CONSIGNDATE
+ OR N.CONSIGNMODE<>T.CONSIGNMODE
+ OR N.BATCHSERIAL<>T.BATCHSERIAL
+ OR N.GREENACCTNO<>T.GREENACCTNO
+ OR N.ACCTFLAG<>T.ACCTFLAG
+ OR N.OPENORGANCODE<>T.OPENORGANCODE
+ OR N.OTHERID<>T.OTHERID
+ OR N.POSTBILLFLAG<>T.POSTBILLFLAG
+ OR N.POSTBILLMODE<>T.POSTBILLMODE
+ OR N.DETAINNOTICE<>T.DETAINNOTICE
+ OR N.TAFLAG<>T.TAFLAG
+ OR N.TAACCTFLAG<>T.TAACCTFLAG
+ OR N.BONUSMODE<>T.BONUSMODE
+ OR N.MAINGREENACCTNO<>T.MAINGREENACCTNO
+ OR N.MOTIFYDATE<>T.MOTIFYDATE
+ OR N.PAPER_NO<>T.PAPER_NO
+ OR N.CHNLNO<>T.CHNLNO
+ OR N.YZADDFLAG<>T.YZADDFLAG
+;
+
+--Step3:
+UPDATE dw_sdata.FSS_001_FD_ADDCONSIGN P 
+SET End_Dt=DATE('${TX_DATE_YYYYMMDD}')
+FROM T_185
+WHERE P.End_Dt=DATE('2100-12-31')
+AND P.CUSTOMERID=T_185.CUSTOMERID
+AND P.BUSINESSTYPECODE=T_185.BUSINESSTYPECODE
+AND P.AGENTCORPCODE=T_185.AGENTCORPCODE
+AND P.CUSTOMERNO=T_185.CUSTOMERNO
+;
+
+--Step4:
+INSERT  INTO dw_sdata.FSS_001_FD_ADDCONSIGN SELECT * FROM T_185;
+
+COMMIT;
+
+ENDOFINPUT
+
+  close(VSQL);
+
+  my $RET_CODE = $? >> 8;
+
+  if ( $RET_CODE == 0 ) {
+      return 0;
+  }
+  else {
+      return 1;
+  }
+}
+
+# ------------ main function ------------
+sub main
+{
+   my $ret;
+   open(LOGONFILE_H, "${LOGON_FILE}");
+   ${LOGON_STR} = <LOGONFILE_H>;
+   close(LOGONFILE_H);
+   
+   # Get the decoded logon string
+   my($user,$passwd) = split(',',${LOGON_STR}); 
+   #my $decodepasswd = `${AUTO_HOME}/bin/IceCode.exe -d "$passwd" "$user"`;                     
+   #${LOGON_STR} = "|vsql -h 192.168.2.44 -p 5433 -d CPCIMDB_TEST -U ".$user." -w ".$decodepasswd;
+
+   # Call vsql command to load data
+   $ret = run_vsql_command();
+
+   print "run_vsql_command() = $ret";
+   return $ret;
+}
+
+# ------------ program section ------------
+if ( $#ARGV < 0 ) {
+   print "Usage: [perl 程序名 Control_File] (Control_File format: dir.jobnameYYYYMMDD or sysname_jobname_YYYYMMDD.dir) 
+";
+   print "
+";
+   exit(1);
+}
+
+# Get the first argument
+${CONTROL_FILE} = $ARGV[0];
+
+if (${CONTROL_FILE} =~/[0-9]{8}($|\.)/) {
+   ${TX_DATE_YYYYMMDD} = substr($&,0,8);
+}
+else{
+   print "Usage: [perl 程序名 Control_File] (Control_File format: dir.jobnameYYYYMMDD or sysname_jobname_YYYYMMDD.dir) 
+";
+   print "
+";
+   exit(1);
+}
+
+${TX_MON_DAY_MMDD} = substr(${TX_DATE_YYYYMMDD}, length(${TX_DATE_YYYYMMDD})-4,4);
+${TX_DATE} = substr(${TX_DATE_YYYYMMDD}, 0, 4)."-".substr(${TX_DATE_YYYYMMDD}, 4, 2)."-".substr(${TX_DATE_YYYYMMDD}, 6, 2);
+open(STDERR, ">&STDOUT");
+
+my $ret = main();
+
+exit($ret);

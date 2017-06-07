@@ -1,0 +1,270 @@
+#!/usr/bin/perl
+
+use strict;     # Declare using Perl strict syntax
+use DBI;        # If you are using other package, declare here
+
+# ------------ Variable Section ------------
+my ${AUTO_HOME} = $ENV{"AUTO_HOME"};
+
+my ${WML_DB} = $ENV{"AUTO_WML_DB"};
+if ( !defined(${WML_DB}) ) {
+    ${WML_DB} = "WML";
+}
+my ${WTL_DB} = $ENV{"AUTO_WTL_DB"};
+if ( !defined(${WTL_DB}) ) {
+    ${WTL_DB} = "WTL";
+}
+my ${WMLVIEW_DB} = $ENV{"AUTO_WMLVIEW_DB"};
+if ( !defined(${WMLVIEW_DB}) ) {
+    ${WMLVIEW_DB} = "WMLVIEW";
+}
+my ${WTLVIEW_DB} = $ENV{"AUTO_WTLVIEW_DB"};
+if ( !defined(${WTLVIEW_DB}) ) {
+    ${WTLVIEW_DB} = "WTLVIEW";
+}
+
+my ${NULL_DATE} = "1900-01-02";
+my ${MIN_DATE} = "1900-01-01";
+my ${MAX_DATE} = "2100-12-31";
+
+my ${LOGON_FILE} = "${AUTO_HOME}/etc/VERTICA_LOGON";
+my ${LOGON_STR};
+my ${CONTROL_FILE};
+my ${TX_DATE};
+my ${TX_DATE_YYYYMMDD};
+my ${TX_MON_DAY_MMDD};
+
+# ------------ VSQL function ------------
+sub run_vsql_command
+{
+  #my $rc = open(VSQL, "${LOGON_STR}");
+  my $rc = open(VSQL, "|vsql -h 22.224.65.171 -p 5433 -d CPCIMDB_TEST -U dwtrans -w dwtrans2016");
+
+  unless ($rc) {
+      print "Could not invoke VSQL command
+";
+      return -1;
+  }
+
+# ------ Below are VSQL scripts ----------
+  print VSQL <<ENDOFINPUT;
+
+\\set ON_ERROR_STOP on
+
+--Step0:
+DELETE FROM dw_sdata.PCS_006_TB_AST_LUR WHERE start_dt>=DATE('${TX_DATE_YYYYMMDD}');
+UPDATE dw_sdata.PCS_006_TB_AST_LUR SET end_dt=DATE('2100-12-31') WHERE end_dt>=DATE('${TX_DATE_YYYYMMDD}') AND end_dt<>DATE('2100-12-31');
+
+--Step1:
+CREATE LOCAL TEMPORARY TABLE  T_376 ON COMMIT PRESERVE ROWS AS SELECT * FROM dw_sdata.PCS_006_TB_AST_LUR WHERE 1=0;
+
+--Step2:
+INSERT  INTO T_376 (
+  ASSET_ID,
+  ASSET_NAME,
+  COLLECTIVELAND_TYPE,
+  PRO_REGION_MUNI,
+  CITY_PREFECTURE,
+  AREA_COUNTY,
+  STREET_TOWNSHIP,
+  ADDRESS,
+  RIGHTPROVE_TYPE,
+  LANDUSERIGHT_NO,
+  LSSUING_AUTHORITY,
+  CONTRACT,
+  AMOUNT_PAID_PROVE,
+  LAND_USE,
+  LAND_AREA,
+  USE_DATE,
+  ENDING_DATE,
+  LAND_LEVEL,
+  OTHER_DESCRIPTION,
+  CREATE_TIME,
+  UPDATE_TIME,
+  DELFLAG,
+  TRUNC_NO,
+  start_dt,
+  end_dt)
+SELECT
+  N.ASSET_ID,
+  N.ASSET_NAME,
+  N.COLLECTIVELAND_TYPE,
+  N.PRO_REGION_MUNI,
+  N.CITY_PREFECTURE,
+  N.AREA_COUNTY,
+  N.STREET_TOWNSHIP,
+  N.ADDRESS,
+  N.RIGHTPROVE_TYPE,
+  N.LANDUSERIGHT_NO,
+  N.LSSUING_AUTHORITY,
+  N.CONTRACT,
+  N.AMOUNT_PAID_PROVE,
+  N.LAND_USE,
+  N.LAND_AREA,
+  N.USE_DATE,
+  N.ENDING_DATE,
+  N.LAND_LEVEL,
+  N.OTHER_DESCRIPTION,
+  N.CREATE_TIME,
+  N.UPDATE_TIME,
+  N.DELFLAG,
+  N.TRUNC_NO,
+  DATE('${TX_DATE_YYYYMMDD}'),
+  DATE('2100-12-31')
+FROM 
+ (SELECT
+  COALESCE(ASSET_ID, '' ) AS ASSET_ID ,
+  COALESCE(ASSET_NAME, '' ) AS ASSET_NAME ,
+  COALESCE(COLLECTIVELAND_TYPE, '' ) AS COLLECTIVELAND_TYPE ,
+  COALESCE(PRO_REGION_MUNI, '' ) AS PRO_REGION_MUNI ,
+  COALESCE(CITY_PREFECTURE, '' ) AS CITY_PREFECTURE ,
+  COALESCE(AREA_COUNTY, '' ) AS AREA_COUNTY ,
+  COALESCE(STREET_TOWNSHIP, '' ) AS STREET_TOWNSHIP ,
+  COALESCE(ADDRESS, '' ) AS ADDRESS ,
+  COALESCE(RIGHTPROVE_TYPE, '' ) AS RIGHTPROVE_TYPE ,
+  COALESCE(LANDUSERIGHT_NO, '' ) AS LANDUSERIGHT_NO ,
+  COALESCE(LSSUING_AUTHORITY, '' ) AS LSSUING_AUTHORITY ,
+  COALESCE(CONTRACT, '' ) AS CONTRACT ,
+  COALESCE(AMOUNT_PAID_PROVE, '' ) AS AMOUNT_PAID_PROVE ,
+  COALESCE(LAND_USE, '' ) AS LAND_USE ,
+  COALESCE(LAND_AREA, 0 ) AS LAND_AREA ,
+  COALESCE(USE_DATE,DATE('4999-12-31') ) AS USE_DATE ,
+  COALESCE(ENDING_DATE,DATE('4999-12-31') ) AS ENDING_DATE ,
+  COALESCE(LAND_LEVEL, '' ) AS LAND_LEVEL ,
+  COALESCE(OTHER_DESCRIPTION, '' ) AS OTHER_DESCRIPTION ,
+  COALESCE(CREATE_TIME,'4999-12-31 00:00:00' ) AS CREATE_TIME ,
+  COALESCE(UPDATE_TIME,'4999-12-31 00:00:00' ) AS UPDATE_TIME ,
+  COALESCE(DELFLAG, '' ) AS DELFLAG ,
+  COALESCE(TRUNC_NO, 0 ) AS TRUNC_NO 
+ FROM  dw_tdata.PCS_006_TB_AST_LUR_${TX_DATE_YYYYMMDD}) N
+LEFT JOIN
+ (SELECT 
+  ASSET_ID ,
+  ASSET_NAME ,
+  COLLECTIVELAND_TYPE ,
+  PRO_REGION_MUNI ,
+  CITY_PREFECTURE ,
+  AREA_COUNTY ,
+  STREET_TOWNSHIP ,
+  ADDRESS ,
+  RIGHTPROVE_TYPE ,
+  LANDUSERIGHT_NO ,
+  LSSUING_AUTHORITY ,
+  CONTRACT ,
+  AMOUNT_PAID_PROVE ,
+  LAND_USE ,
+  LAND_AREA ,
+  USE_DATE ,
+  ENDING_DATE ,
+  LAND_LEVEL ,
+  OTHER_DESCRIPTION ,
+  CREATE_TIME ,
+  UPDATE_TIME ,
+  DELFLAG ,
+  TRUNC_NO 
+ FROM dw_sdata.PCS_006_TB_AST_LUR 
+ WHERE END_DT = DATE('2100-12-31') ) T
+ON N.ASSET_ID = T.ASSET_ID
+WHERE
+(T.ASSET_ID IS NULL)
+ OR N.ASSET_NAME<>T.ASSET_NAME
+ OR N.COLLECTIVELAND_TYPE<>T.COLLECTIVELAND_TYPE
+ OR N.PRO_REGION_MUNI<>T.PRO_REGION_MUNI
+ OR N.CITY_PREFECTURE<>T.CITY_PREFECTURE
+ OR N.AREA_COUNTY<>T.AREA_COUNTY
+ OR N.STREET_TOWNSHIP<>T.STREET_TOWNSHIP
+ OR N.ADDRESS<>T.ADDRESS
+ OR N.RIGHTPROVE_TYPE<>T.RIGHTPROVE_TYPE
+ OR N.LANDUSERIGHT_NO<>T.LANDUSERIGHT_NO
+ OR N.LSSUING_AUTHORITY<>T.LSSUING_AUTHORITY
+ OR N.CONTRACT<>T.CONTRACT
+ OR N.AMOUNT_PAID_PROVE<>T.AMOUNT_PAID_PROVE
+ OR N.LAND_USE<>T.LAND_USE
+ OR N.LAND_AREA<>T.LAND_AREA
+ OR N.USE_DATE<>T.USE_DATE
+ OR N.ENDING_DATE<>T.ENDING_DATE
+ OR N.LAND_LEVEL<>T.LAND_LEVEL
+ OR N.OTHER_DESCRIPTION<>T.OTHER_DESCRIPTION
+ OR N.CREATE_TIME<>T.CREATE_TIME
+ OR N.UPDATE_TIME<>T.UPDATE_TIME
+ OR N.DELFLAG<>T.DELFLAG
+ OR N.TRUNC_NO<>T.TRUNC_NO
+;
+
+--Step3:
+UPDATE dw_sdata.PCS_006_TB_AST_LUR P 
+SET End_Dt=DATE('${TX_DATE_YYYYMMDD}')
+FROM T_376
+WHERE P.End_Dt=DATE('2100-12-31')
+AND P.ASSET_ID=T_376.ASSET_ID
+;
+
+--Step4:
+INSERT  INTO dw_sdata.PCS_006_TB_AST_LUR SELECT * FROM T_376;
+
+COMMIT;
+
+ENDOFINPUT
+
+  close(VSQL);
+
+  my $RET_CODE = $? >> 8;
+
+  if ( $RET_CODE == 0 ) {
+      return 0;
+  }
+  else {
+      return 1;
+  }
+}
+
+# ------------ main function ------------
+sub main
+{
+   my $ret;
+   open(LOGONFILE_H, "${LOGON_FILE}");
+   ${LOGON_STR} = <LOGONFILE_H>;
+   close(LOGONFILE_H);
+   
+   # Get the decoded logon string
+   my($user,$passwd) = split(',',${LOGON_STR}); 
+   #my $decodepasswd = `${AUTO_HOME}/bin/IceCode.exe -d "$passwd" "$user"`;                     
+   #${LOGON_STR} = "|vsql -h 192.168.2.44 -p 5433 -d CPCIMDB_TEST -U ".$user." -w ".$decodepasswd;
+
+   # Call vsql command to load data
+   $ret = run_vsql_command();
+
+   print "run_vsql_command() = $ret";
+   return $ret;
+}
+
+# ------------ program section ------------
+if ( $#ARGV < 0 ) {
+   print "Usage: [perl 程序名 Control_File] (Control_File format: dir.jobnameYYYYMMDD or sysname_jobname_YYYYMMDD.dir) 
+";
+   print "
+";
+   exit(1);
+}
+
+# Get the first argument
+${CONTROL_FILE} = $ARGV[0];
+
+if (${CONTROL_FILE} =~/[0-9]{8}($|\.)/) {
+   ${TX_DATE_YYYYMMDD} = substr($&,0,8);
+}
+else{
+   print "Usage: [perl 程序名 Control_File] (Control_File format: dir.jobnameYYYYMMDD or sysname_jobname_YYYYMMDD.dir) 
+";
+   print "
+";
+   exit(1);
+}
+
+${TX_MON_DAY_MMDD} = substr(${TX_DATE_YYYYMMDD}, length(${TX_DATE_YYYYMMDD})-4,4);
+${TX_DATE} = substr(${TX_DATE_YYYYMMDD}, 0, 4)."-".substr(${TX_DATE_YYYYMMDD}, 4, 2)."-".substr(${TX_DATE_YYYYMMDD}, 6, 2);
+open(STDERR, ">&STDOUT");
+
+my $ret = main();
+
+exit($ret);

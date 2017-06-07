@@ -1,0 +1,315 @@
+#!/usr/bin/perl
+
+use strict;     # Declare using Perl strict syntax
+use DBI;        # If you are using other package, declare here
+
+# ------------ Variable Section ------------
+my ${AUTO_HOME} = $ENV{"AUTO_HOME"};
+
+my ${WML_DB} = $ENV{"AUTO_WML_DB"};
+if ( !defined(${WML_DB}) ) {
+    ${WML_DB} = "WML";
+}
+my ${WTL_DB} = $ENV{"AUTO_WTL_DB"};
+if ( !defined(${WTL_DB}) ) {
+    ${WTL_DB} = "WTL";
+}
+my ${WMLVIEW_DB} = $ENV{"AUTO_WMLVIEW_DB"};
+if ( !defined(${WMLVIEW_DB}) ) {
+    ${WMLVIEW_DB} = "WMLVIEW";
+}
+my ${WTLVIEW_DB} = $ENV{"AUTO_WTLVIEW_DB"};
+if ( !defined(${WTLVIEW_DB}) ) {
+    ${WTLVIEW_DB} = "WTLVIEW";
+}
+
+my ${NULL_DATE} = "1900-01-02";
+my ${MIN_DATE} = "1900-01-01";
+my ${MAX_DATE} = "2100-12-31";
+
+my ${LOGON_FILE} = "${AUTO_HOME}/etc/VERTICA_LOGON";
+my ${LOGON_STR};
+my ${CONTROL_FILE};
+my ${TX_DATE};
+my ${TX_DATE_YYYYMMDD};
+my ${TX_MON_DAY_MMDD};
+
+# ------------ VSQL function ------------
+sub run_vsql_command
+{
+  #my $rc = open(VSQL, "${LOGON_STR}");
+  my $rc = open(VSQL, "|vsql -h 22.224.65.171 -p 5433 -d CPCIMDB_TEST -U dwtrans -w dwtrans2016");
+
+  unless ($rc) {
+      print "Could not invoke VSQL command
+";
+      return -1;
+  }
+
+# ------ Below are VSQL scripts ----------
+  print VSQL <<ENDOFINPUT;
+
+\\set ON_ERROR_STOP on
+
+--Step0:
+DELETE FROM dw_sdata.FSS_000_FD_MSGSENDTO_KJ WHERE start_dt>=DATE('${TX_DATE_YYYYMMDD}');
+UPDATE dw_sdata.FSS_000_FD_MSGSENDTO_KJ SET end_dt=DATE('2100-12-31') WHERE end_dt>=DATE('${TX_DATE_YYYYMMDD}') AND end_dt<>DATE('2100-12-31');
+
+--Step1:
+CREATE LOCAL TEMPORARY TABLE  T_174 ON COMMIT PRESERVE ROWS AS SELECT * FROM dw_sdata.FSS_000_FD_MSGSENDTO_KJ WHERE 1=0;
+
+--Step2:
+INSERT  INTO T_174 (
+  MSGTYPE,
+  MSGSERIAL,
+  TRADEDATE,
+  MSGSUBTYPE,
+  RIQIETIME,
+  SENDTIME,
+  MEMO,
+  SENDFLAG,
+  DATA_NAME,
+  RESEND_FLAG,
+  RECORD_NUM,
+  RECORD_LEN,
+  FILE_NAME,
+  HAN_TYPE,
+  BATCH_NO,
+  FILE_NUM,
+  FILE_SN,
+  FILE_DIR,
+  FILE_LEN,
+  VERI_FLAG,
+  VERI_TYPE,
+  VERI_CODE,
+  DAY_MSG_COUNT,
+  DAY_FILE_COUNT,
+  ACCDATE,
+  CHECKSTATE,
+  SENDTIMES,
+  INSIDECODE,
+  BATCHSERIAL,
+  ACCTTYPE,
+  CHECKFILEFLAG,
+  RECVSYSCODE,
+  start_dt,
+  end_dt)
+SELECT
+  N.MSGTYPE,
+  N.MSGSERIAL,
+  N.TRADEDATE,
+  N.MSGSUBTYPE,
+  N.RIQIETIME,
+  N.SENDTIME,
+  N.MEMO,
+  N.SENDFLAG,
+  N.DATA_NAME,
+  N.RESEND_FLAG,
+  N.RECORD_NUM,
+  N.RECORD_LEN,
+  N.FILE_NAME,
+  N.HAN_TYPE,
+  N.BATCH_NO,
+  N.FILE_NUM,
+  N.FILE_SN,
+  N.FILE_DIR,
+  N.FILE_LEN,
+  N.VERI_FLAG,
+  N.VERI_TYPE,
+  N.VERI_CODE,
+  N.DAY_MSG_COUNT,
+  N.DAY_FILE_COUNT,
+  N.ACCDATE,
+  N.CHECKSTATE,
+  N.SENDTIMES,
+  N.INSIDECODE,
+  N.BATCHSERIAL,
+  N.ACCTTYPE,
+  N.CHECKFILEFLAG,
+  N.RECVSYSCODE,
+  DATE('${TX_DATE_YYYYMMDD}'),
+  DATE('2100-12-31')
+FROM 
+ (SELECT
+  COALESCE(MSGTYPE, '' ) AS MSGTYPE ,
+  COALESCE(MSGSERIAL, 0 ) AS MSGSERIAL ,
+  COALESCE(TRADEDATE, '' ) AS TRADEDATE ,
+  COALESCE(MSGSUBTYPE, '' ) AS MSGSUBTYPE ,
+  COALESCE(RIQIETIME, '' ) AS RIQIETIME ,
+  COALESCE(SENDTIME, '' ) AS SENDTIME ,
+  COALESCE(MEMO, '' ) AS MEMO ,
+  COALESCE(SENDFLAG, '' ) AS SENDFLAG ,
+  COALESCE(DATA_NAME, '' ) AS DATA_NAME ,
+  COALESCE(RESEND_FLAG, '' ) AS RESEND_FLAG ,
+  COALESCE(RECORD_NUM, 0 ) AS RECORD_NUM ,
+  COALESCE(RECORD_LEN, 0 ) AS RECORD_LEN ,
+  COALESCE(FILE_NAME, '' ) AS FILE_NAME ,
+  COALESCE(HAN_TYPE, '' ) AS HAN_TYPE ,
+  COALESCE(BATCH_NO, '' ) AS BATCH_NO ,
+  COALESCE(FILE_NUM, 0 ) AS FILE_NUM ,
+  COALESCE(FILE_SN, 0 ) AS FILE_SN ,
+  COALESCE(FILE_DIR, '' ) AS FILE_DIR ,
+  COALESCE(FILE_LEN, 0 ) AS FILE_LEN ,
+  COALESCE(VERI_FLAG, '' ) AS VERI_FLAG ,
+  COALESCE(VERI_TYPE, '' ) AS VERI_TYPE ,
+  COALESCE(VERI_CODE, '' ) AS VERI_CODE ,
+  COALESCE(DAY_MSG_COUNT, 0 ) AS DAY_MSG_COUNT ,
+  COALESCE(DAY_FILE_COUNT, 0 ) AS DAY_FILE_COUNT ,
+  COALESCE(ACCDATE, '' ) AS ACCDATE ,
+  COALESCE(CHECKSTATE, '' ) AS CHECKSTATE ,
+  COALESCE(SENDTIMES, 0 ) AS SENDTIMES ,
+  COALESCE(INSIDECODE, '' ) AS INSIDECODE ,
+  COALESCE(BATCHSERIAL, '' ) AS BATCHSERIAL ,
+  COALESCE(ACCTTYPE, '' ) AS ACCTTYPE ,
+  COALESCE(CHECKFILEFLAG, '' ) AS CHECKFILEFLAG ,
+  COALESCE(RECVSYSCODE, '' ) AS RECVSYSCODE 
+ FROM  dw_tdata.FSS_000_FD_MSGSENDTO_KJ_${TX_DATE_YYYYMMDD}) N
+LEFT JOIN
+ (SELECT 
+  MSGTYPE ,
+  MSGSERIAL ,
+  TRADEDATE ,
+  MSGSUBTYPE ,
+  RIQIETIME ,
+  SENDTIME ,
+  MEMO ,
+  SENDFLAG ,
+  DATA_NAME ,
+  RESEND_FLAG ,
+  RECORD_NUM ,
+  RECORD_LEN ,
+  FILE_NAME ,
+  HAN_TYPE ,
+  BATCH_NO ,
+  FILE_NUM ,
+  FILE_SN ,
+  FILE_DIR ,
+  FILE_LEN ,
+  VERI_FLAG ,
+  VERI_TYPE ,
+  VERI_CODE ,
+  DAY_MSG_COUNT ,
+  DAY_FILE_COUNT ,
+  ACCDATE ,
+  CHECKSTATE ,
+  SENDTIMES ,
+  INSIDECODE ,
+  BATCHSERIAL ,
+  ACCTTYPE ,
+  CHECKFILEFLAG ,
+  RECVSYSCODE 
+ FROM dw_sdata.FSS_000_FD_MSGSENDTO_KJ 
+ WHERE END_DT = DATE('2100-12-31') ) T
+ON N.MSGTYPE = T.MSGTYPE AND N.MSGSERIAL = T.MSGSERIAL AND N.TRADEDATE = T.TRADEDATE
+WHERE
+(T.MSGTYPE IS NULL AND T.MSGSERIAL IS NULL AND T.TRADEDATE IS NULL)
+ OR N.MSGSUBTYPE<>T.MSGSUBTYPE
+ OR N.RIQIETIME<>T.RIQIETIME
+ OR N.SENDTIME<>T.SENDTIME
+ OR N.MEMO<>T.MEMO
+ OR N.SENDFLAG<>T.SENDFLAG
+ OR N.DATA_NAME<>T.DATA_NAME
+ OR N.RESEND_FLAG<>T.RESEND_FLAG
+ OR N.RECORD_NUM<>T.RECORD_NUM
+ OR N.RECORD_LEN<>T.RECORD_LEN
+ OR N.FILE_NAME<>T.FILE_NAME
+ OR N.HAN_TYPE<>T.HAN_TYPE
+ OR N.BATCH_NO<>T.BATCH_NO
+ OR N.FILE_NUM<>T.FILE_NUM
+ OR N.FILE_SN<>T.FILE_SN
+ OR N.FILE_DIR<>T.FILE_DIR
+ OR N.FILE_LEN<>T.FILE_LEN
+ OR N.VERI_FLAG<>T.VERI_FLAG
+ OR N.VERI_TYPE<>T.VERI_TYPE
+ OR N.VERI_CODE<>T.VERI_CODE
+ OR N.DAY_MSG_COUNT<>T.DAY_MSG_COUNT
+ OR N.DAY_FILE_COUNT<>T.DAY_FILE_COUNT
+ OR N.ACCDATE<>T.ACCDATE
+ OR N.CHECKSTATE<>T.CHECKSTATE
+ OR N.SENDTIMES<>T.SENDTIMES
+ OR N.INSIDECODE<>T.INSIDECODE
+ OR N.BATCHSERIAL<>T.BATCHSERIAL
+ OR N.ACCTTYPE<>T.ACCTTYPE
+ OR N.CHECKFILEFLAG<>T.CHECKFILEFLAG
+ OR N.RECVSYSCODE<>T.RECVSYSCODE
+;
+
+--Step3:
+UPDATE dw_sdata.FSS_000_FD_MSGSENDTO_KJ P 
+SET End_Dt=DATE('${TX_DATE_YYYYMMDD}')
+FROM T_174
+WHERE P.End_Dt=DATE('2100-12-31')
+AND P.MSGTYPE=T_174.MSGTYPE
+AND P.MSGSERIAL=T_174.MSGSERIAL
+AND P.TRADEDATE=T_174.TRADEDATE
+;
+
+--Step4:
+INSERT  INTO dw_sdata.FSS_000_FD_MSGSENDTO_KJ SELECT * FROM T_174;
+
+COMMIT;
+
+ENDOFINPUT
+
+  close(VSQL);
+
+  my $RET_CODE = $? >> 8;
+
+  if ( $RET_CODE == 0 ) {
+      return 0;
+  }
+  else {
+      return 1;
+  }
+}
+
+# ------------ main function ------------
+sub main
+{
+   my $ret;
+   open(LOGONFILE_H, "${LOGON_FILE}");
+   ${LOGON_STR} = <LOGONFILE_H>;
+   close(LOGONFILE_H);
+   
+   # Get the decoded logon string
+   my($user,$passwd) = split(',',${LOGON_STR}); 
+   #my $decodepasswd = `${AUTO_HOME}/bin/IceCode.exe -d "$passwd" "$user"`;                     
+   #${LOGON_STR} = "|vsql -h 192.168.2.44 -p 5433 -d CPCIMDB_TEST -U ".$user." -w ".$decodepasswd;
+
+   # Call vsql command to load data
+   $ret = run_vsql_command();
+
+   print "run_vsql_command() = $ret";
+   return $ret;
+}
+
+# ------------ program section ------------
+if ( $#ARGV < 0 ) {
+   print "Usage: [perl 程序名 Control_File] (Control_File format: dir.jobnameYYYYMMDD or sysname_jobname_YYYYMMDD.dir) 
+";
+   print "
+";
+   exit(1);
+}
+
+# Get the first argument
+${CONTROL_FILE} = $ARGV[0];
+
+if (${CONTROL_FILE} =~/[0-9]{8}($|\.)/) {
+   ${TX_DATE_YYYYMMDD} = substr($&,0,8);
+}
+else{
+   print "Usage: [perl 程序名 Control_File] (Control_File format: dir.jobnameYYYYMMDD or sysname_jobname_YYYYMMDD.dir) 
+";
+   print "
+";
+   exit(1);
+}
+
+${TX_MON_DAY_MMDD} = substr(${TX_DATE_YYYYMMDD}, length(${TX_DATE_YYYYMMDD})-4,4);
+${TX_DATE} = substr(${TX_DATE_YYYYMMDD}, 0, 4)."-".substr(${TX_DATE_YYYYMMDD}, 4, 2)."-".substr(${TX_DATE_YYYYMMDD}, 6, 2);
+open(STDERR, ">&STDOUT");
+
+my $ret = main();
+
+exit($ret);

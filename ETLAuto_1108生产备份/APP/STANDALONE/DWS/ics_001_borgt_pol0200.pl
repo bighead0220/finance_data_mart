@@ -1,0 +1,380 @@
+#!/usr/bin/perl
+
+use strict;     # Declare using Perl strict syntax
+use DBI;        # If you are using other package, declare here
+
+# ------------ Variable Section ------------
+my ${AUTO_HOME} = $ENV{"AUTO_HOME"};
+
+my ${WML_DB} = $ENV{"AUTO_WML_DB"};
+if ( !defined(${WML_DB}) ) {
+    ${WML_DB} = "WML";
+}
+my ${WTL_DB} = $ENV{"AUTO_WTL_DB"};
+if ( !defined(${WTL_DB}) ) {
+    ${WTL_DB} = "WTL";
+}
+my ${WMLVIEW_DB} = $ENV{"AUTO_WMLVIEW_DB"};
+if ( !defined(${WMLVIEW_DB}) ) {
+    ${WMLVIEW_DB} = "WMLVIEW";
+}
+my ${WTLVIEW_DB} = $ENV{"AUTO_WTLVIEW_DB"};
+if ( !defined(${WTLVIEW_DB}) ) {
+    ${WTLVIEW_DB} = "WTLVIEW";
+}
+
+my ${NULL_DATE} = "1900-01-02";
+my ${MIN_DATE} = "1900-01-01";
+my ${MAX_DATE} = "2100-12-31";
+
+my ${LOGON_FILE} = "${AUTO_HOME}/etc/VERTICA_LOGON";
+my ${LOGON_STR};
+my ${CONTROL_FILE};
+my ${TX_DATE};
+my ${TX_DATE_YYYYMMDD};
+my ${TX_MON_DAY_MMDD};
+
+# ------------ VSQL function ------------
+sub run_vsql_command
+{
+  #my $rc = open(VSQL, "${LOGON_STR}");
+  my $rc = open(VSQL, "|vsql -h 22.224.65.171 -p 5433 -d CPCIMDB_TEST -U dwtrans -w dwtrans2016");
+
+  unless ($rc) {
+      print "Could not invoke VSQL command
+";
+      return -1;
+  }
+
+# ------ Below are VSQL scripts ----------
+  print VSQL <<ENDOFINPUT;
+
+\\set ON_ERROR_STOP on
+
+--Step0:
+DELETE FROM dw_sdata.ICS_001_BORGT_POL WHERE start_dt>=DATE('${TX_DATE_YYYYMMDD}');
+UPDATE dw_sdata.ICS_001_BORGT_POL SET end_dt=DATE('2100-12-31') WHERE end_dt>=DATE('${TX_DATE_YYYYMMDD}') AND end_dt<>DATE('2100-12-31');
+
+--Step1:
+CREATE LOCAL TEMPORARY TABLE  T_223 ON COMMIT PRESERVE ROWS AS SELECT * FROM dw_sdata.ICS_001_BORGT_POL WHERE 1=0;
+
+--Step2:
+INSERT  INTO T_223 (
+  INSU_CODE,
+  POL_ID,
+  PROV_CODE,
+  CLR_DATE,
+  OPERATOR,
+  CEN_SERIAL_NO,
+  CLI_SERIAL_NO,
+  UNIT_CODE,
+  APPF_NO,
+  POL_STAT_FLAG,
+  INSU_PRO_KIND,
+  INSU_KIND,
+  SALE_ID,
+  PAYMT_MODE,
+  SAV_ACCT,
+  VCH_SIGN,
+  POL_PRT_NO,
+  VCH_TYPE,
+  VCH_ID,
+  PAY_MODE,
+  FIRTIME_PREM,
+  POL_AMT,
+  ADD_NO,
+  POH_CUST_ID,
+  NAME,
+  COMU_TEL,
+  MOBILE,
+  HOME_ADDR,
+  REC_NAME,
+  POH_REC_RELATION,
+  POL_FINAL_DATE,
+  CCL_DATE,
+  PAY_NO,
+  NEXT_DATE,
+  NEXT_AMT,
+  NOW_DATE,
+  DEAL_FLAG,
+  DEAL_AMT,
+  TRAN_CODE,
+  REC_BTH,
+  REC_PHONE,
+  REC_TEL,
+  REC_ADDR,
+  CLIC_FLAG,
+  PAY_TIMES,
+  start_dt,
+  end_dt)
+SELECT
+  N.INSU_CODE,
+  N.POL_ID,
+  N.PROV_CODE,
+  N.CLR_DATE,
+  N.OPERATOR,
+  N.CEN_SERIAL_NO,
+  N.CLI_SERIAL_NO,
+  N.UNIT_CODE,
+  N.APPF_NO,
+  N.POL_STAT_FLAG,
+  N.INSU_PRO_KIND,
+  N.INSU_KIND,
+  N.SALE_ID,
+  N.PAYMT_MODE,
+  N.SAV_ACCT,
+  N.VCH_SIGN,
+  N.POL_PRT_NO,
+  N.VCH_TYPE,
+  N.VCH_ID,
+  N.PAY_MODE,
+  N.FIRTIME_PREM,
+  N.POL_AMT,
+  N.ADD_NO,
+  N.POH_CUST_ID,
+  N.NAME,
+  N.COMU_TEL,
+  N.MOBILE,
+  N.HOME_ADDR,
+  N.REC_NAME,
+  N.POH_REC_RELATION,
+  N.POL_FINAL_DATE,
+  N.CCL_DATE,
+  N.PAY_NO,
+  N.NEXT_DATE,
+  N.NEXT_AMT,
+  N.NOW_DATE,
+  N.DEAL_FLAG,
+  N.DEAL_AMT,
+  N.TRAN_CODE,
+  N.REC_BTH,
+  N.REC_PHONE,
+  N.REC_TEL,
+  N.REC_ADDR,
+  N.CLIC_FLAG,
+  N.PAY_TIMES,
+  DATE('${TX_DATE_YYYYMMDD}'),
+  DATE('2100-12-31')
+FROM 
+ (SELECT
+  COALESCE(INSU_CODE, '' ) AS INSU_CODE ,
+  COALESCE(POL_ID, '' ) AS POL_ID ,
+  COALESCE(PROV_CODE, '' ) AS PROV_CODE ,
+  COALESCE(CLR_DATE, '' ) AS CLR_DATE ,
+  COALESCE(OPERATOR, '' ) AS OPERATOR ,
+  COALESCE(CEN_SERIAL_NO, 0 ) AS CEN_SERIAL_NO ,
+  COALESCE(CLI_SERIAL_NO, 0 ) AS CLI_SERIAL_NO ,
+  COALESCE(UNIT_CODE, '' ) AS UNIT_CODE ,
+  COALESCE(APPF_NO, '' ) AS APPF_NO ,
+  COALESCE(POL_STAT_FLAG, '' ) AS POL_STAT_FLAG ,
+  COALESCE(INSU_PRO_KIND, '' ) AS INSU_PRO_KIND ,
+  COALESCE(INSU_KIND, '' ) AS INSU_KIND ,
+  COALESCE(SALE_ID, '' ) AS SALE_ID ,
+  COALESCE(PAYMT_MODE, '' ) AS PAYMT_MODE ,
+  COALESCE(SAV_ACCT, '' ) AS SAV_ACCT ,
+  COALESCE(VCH_SIGN, '' ) AS VCH_SIGN ,
+  COALESCE(POL_PRT_NO, '' ) AS POL_PRT_NO ,
+  COALESCE(VCH_TYPE, '' ) AS VCH_TYPE ,
+  COALESCE(VCH_ID, '' ) AS VCH_ID ,
+  COALESCE(PAY_MODE, '' ) AS PAY_MODE ,
+  COALESCE(FIRTIME_PREM, 0 ) AS FIRTIME_PREM ,
+  COALESCE(POL_AMT, 0 ) AS POL_AMT ,
+  COALESCE(ADD_NO, 0 ) AS ADD_NO ,
+  COALESCE(POH_CUST_ID, '' ) AS POH_CUST_ID ,
+  COALESCE(NAME, '' ) AS NAME ,
+  COALESCE(COMU_TEL, '' ) AS COMU_TEL ,
+  COALESCE(MOBILE, '' ) AS MOBILE ,
+  COALESCE(HOME_ADDR, '' ) AS HOME_ADDR ,
+  COALESCE(REC_NAME, '' ) AS REC_NAME ,
+  COALESCE(POH_REC_RELATION, '' ) AS POH_REC_RELATION ,
+  COALESCE(POL_FINAL_DATE, '' ) AS POL_FINAL_DATE ,
+  COALESCE(CCL_DATE, '' ) AS CCL_DATE ,
+  COALESCE(PAY_NO, 0 ) AS PAY_NO ,
+  COALESCE(NEXT_DATE, '' ) AS NEXT_DATE ,
+  COALESCE(NEXT_AMT, 0 ) AS NEXT_AMT ,
+  COALESCE(NOW_DATE, '' ) AS NOW_DATE ,
+  COALESCE(DEAL_FLAG, '' ) AS DEAL_FLAG ,
+  COALESCE(DEAL_AMT, 0 ) AS DEAL_AMT ,
+  COALESCE(TRAN_CODE, '' ) AS TRAN_CODE ,
+  COALESCE(REC_BTH, '' ) AS REC_BTH ,
+  COALESCE(REC_PHONE, '' ) AS REC_PHONE ,
+  COALESCE(REC_TEL, '' ) AS REC_TEL ,
+  COALESCE(REC_ADDR, '' ) AS REC_ADDR ,
+  COALESCE(CLIC_FLAG, '' ) AS CLIC_FLAG ,
+  COALESCE(PAY_TIMES, '' ) AS PAY_TIMES 
+ FROM  dw_tdata.ICS_001_BORGT_POL_${TX_DATE_YYYYMMDD}) N
+LEFT JOIN
+ (SELECT 
+  INSU_CODE ,
+  POL_ID ,
+  PROV_CODE ,
+  CLR_DATE ,
+  OPERATOR ,
+  CEN_SERIAL_NO ,
+  CLI_SERIAL_NO ,
+  UNIT_CODE ,
+  APPF_NO ,
+  POL_STAT_FLAG ,
+  INSU_PRO_KIND ,
+  INSU_KIND ,
+  SALE_ID ,
+  PAYMT_MODE ,
+  SAV_ACCT ,
+  VCH_SIGN ,
+  POL_PRT_NO ,
+  VCH_TYPE ,
+  VCH_ID ,
+  PAY_MODE ,
+  FIRTIME_PREM ,
+  POL_AMT ,
+  ADD_NO ,
+  POH_CUST_ID ,
+  NAME ,
+  COMU_TEL ,
+  MOBILE ,
+  HOME_ADDR ,
+  REC_NAME ,
+  POH_REC_RELATION ,
+  POL_FINAL_DATE ,
+  CCL_DATE ,
+  PAY_NO ,
+  NEXT_DATE ,
+  NEXT_AMT ,
+  NOW_DATE ,
+  DEAL_FLAG ,
+  DEAL_AMT ,
+  TRAN_CODE ,
+  REC_BTH ,
+  REC_PHONE ,
+  REC_TEL ,
+  REC_ADDR ,
+  CLIC_FLAG ,
+  PAY_TIMES 
+ FROM dw_sdata.ICS_001_BORGT_POL 
+ WHERE END_DT = DATE('2100-12-31') ) T
+ON N.INSU_CODE = T.INSU_CODE AND N.POL_ID = T.POL_ID
+WHERE
+(T.INSU_CODE IS NULL AND T.POL_ID IS NULL)
+ OR N.PROV_CODE<>T.PROV_CODE
+ OR N.CLR_DATE<>T.CLR_DATE
+ OR N.OPERATOR<>T.OPERATOR
+ OR N.CEN_SERIAL_NO<>T.CEN_SERIAL_NO
+ OR N.CLI_SERIAL_NO<>T.CLI_SERIAL_NO
+ OR N.UNIT_CODE<>T.UNIT_CODE
+ OR N.APPF_NO<>T.APPF_NO
+ OR N.POL_STAT_FLAG<>T.POL_STAT_FLAG
+ OR N.INSU_PRO_KIND<>T.INSU_PRO_KIND
+ OR N.INSU_KIND<>T.INSU_KIND
+ OR N.SALE_ID<>T.SALE_ID
+ OR N.PAYMT_MODE<>T.PAYMT_MODE
+ OR N.SAV_ACCT<>T.SAV_ACCT
+ OR N.VCH_SIGN<>T.VCH_SIGN
+ OR N.POL_PRT_NO<>T.POL_PRT_NO
+ OR N.VCH_TYPE<>T.VCH_TYPE
+ OR N.VCH_ID<>T.VCH_ID
+ OR N.PAY_MODE<>T.PAY_MODE
+ OR N.FIRTIME_PREM<>T.FIRTIME_PREM
+ OR N.POL_AMT<>T.POL_AMT
+ OR N.ADD_NO<>T.ADD_NO
+ OR N.POH_CUST_ID<>T.POH_CUST_ID
+ OR N.NAME<>T.NAME
+ OR N.COMU_TEL<>T.COMU_TEL
+ OR N.MOBILE<>T.MOBILE
+ OR N.HOME_ADDR<>T.HOME_ADDR
+ OR N.REC_NAME<>T.REC_NAME
+ OR N.POH_REC_RELATION<>T.POH_REC_RELATION
+ OR N.POL_FINAL_DATE<>T.POL_FINAL_DATE
+ OR N.CCL_DATE<>T.CCL_DATE
+ OR N.PAY_NO<>T.PAY_NO
+ OR N.NEXT_DATE<>T.NEXT_DATE
+ OR N.NEXT_AMT<>T.NEXT_AMT
+ OR N.NOW_DATE<>T.NOW_DATE
+ OR N.DEAL_FLAG<>T.DEAL_FLAG
+ OR N.DEAL_AMT<>T.DEAL_AMT
+ OR N.TRAN_CODE<>T.TRAN_CODE
+ OR N.REC_BTH<>T.REC_BTH
+ OR N.REC_PHONE<>T.REC_PHONE
+ OR N.REC_TEL<>T.REC_TEL
+ OR N.REC_ADDR<>T.REC_ADDR
+ OR N.CLIC_FLAG<>T.CLIC_FLAG
+ OR N.PAY_TIMES<>T.PAY_TIMES
+;
+
+--Step3:
+UPDATE dw_sdata.ICS_001_BORGT_POL P 
+SET End_Dt=DATE('${TX_DATE_YYYYMMDD}')
+FROM T_223
+WHERE P.End_Dt=DATE('2100-12-31')
+AND P.INSU_CODE=T_223.INSU_CODE
+AND P.POL_ID=T_223.POL_ID
+;
+
+--Step4:
+INSERT  INTO dw_sdata.ICS_001_BORGT_POL SELECT * FROM T_223;
+
+COMMIT;
+
+ENDOFINPUT
+
+  close(VSQL);
+
+  my $RET_CODE = $? >> 8;
+
+  if ( $RET_CODE == 0 ) {
+      return 0;
+  }
+  else {
+      return 1;
+  }
+}
+
+# ------------ main function ------------
+sub main
+{
+   my $ret;
+   open(LOGONFILE_H, "${LOGON_FILE}");
+   ${LOGON_STR} = <LOGONFILE_H>;
+   close(LOGONFILE_H);
+   
+   # Get the decoded logon string
+   my($user,$passwd) = split(',',${LOGON_STR}); 
+   #my $decodepasswd = `${AUTO_HOME}/bin/IceCode.exe -d "$passwd" "$user"`;                     
+   #${LOGON_STR} = "|vsql -h 192.168.2.44 -p 5433 -d CPCIMDB_TEST -U ".$user." -w ".$decodepasswd;
+
+   # Call vsql command to load data
+   $ret = run_vsql_command();
+
+   print "run_vsql_command() = $ret";
+   return $ret;
+}
+
+# ------------ program section ------------
+if ( $#ARGV < 0 ) {
+   print "Usage: [perl 程序名 Control_File] (Control_File format: dir.jobnameYYYYMMDD or sysname_jobname_YYYYMMDD.dir) 
+";
+   print "
+";
+   exit(1);
+}
+
+# Get the first argument
+${CONTROL_FILE} = $ARGV[0];
+
+if (${CONTROL_FILE} =~/[0-9]{8}($|\.)/) {
+   ${TX_DATE_YYYYMMDD} = substr($&,0,8);
+}
+else{
+   print "Usage: [perl 程序名 Control_File] (Control_File format: dir.jobnameYYYYMMDD or sysname_jobname_YYYYMMDD.dir) 
+";
+   print "
+";
+   exit(1);
+}
+
+${TX_MON_DAY_MMDD} = substr(${TX_DATE_YYYYMMDD}, length(${TX_DATE_YYYYMMDD})-4,4);
+${TX_DATE} = substr(${TX_DATE_YYYYMMDD}, 0, 4)."-".substr(${TX_DATE_YYYYMMDD}, 4, 2)."-".substr(${TX_DATE_YYYYMMDD}, 6, 2);
+open(STDERR, ">&STDOUT");
+
+my $ret = main();
+
+exit($ret);
