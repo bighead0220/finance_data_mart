@@ -1,0 +1,315 @@
+#!/usr/bin/perl
+
+use strict;     # Declare using Perl strict syntax
+use DBI;        # If you are using other package, declare here
+
+# ------------ Variable Section ------------
+my ${AUTO_HOME} = $ENV{"AUTO_HOME"};
+
+my ${WML_DB} = $ENV{"AUTO_WML_DB"};
+if ( !defined(${WML_DB}) ) {
+    ${WML_DB} = "WML";
+}
+my ${WTL_DB} = $ENV{"AUTO_WTL_DB"};
+if ( !defined(${WTL_DB}) ) {
+    ${WTL_DB} = "WTL";
+}
+my ${WMLVIEW_DB} = $ENV{"AUTO_WMLVIEW_DB"};
+if ( !defined(${WMLVIEW_DB}) ) {
+    ${WMLVIEW_DB} = "WMLVIEW";
+}
+my ${WTLVIEW_DB} = $ENV{"AUTO_WTLVIEW_DB"};
+if ( !defined(${WTLVIEW_DB}) ) {
+    ${WTLVIEW_DB} = "WTLVIEW";
+}
+
+my ${NULL_DATE} = "1900-01-02";
+my ${MIN_DATE} = "1900-01-01";
+my ${MAX_DATE} = "2100-12-31";
+
+my ${LOGON_FILE} = "${AUTO_HOME}/etc/VERTICA_LOGON";
+my ${LOGON_STR};
+my ${CONTROL_FILE};
+my ${TX_DATE};
+my ${TX_DATE_YYYYMMDD};
+my ${TX_MON_DAY_MMDD};
+
+# ------------ VSQL function ------------
+sub run_vsql_command
+{
+  #my $rc = open(VSQL, "${LOGON_STR}");
+  my $rc = open(VSQL, "|vsql -h 22.224.65.171 -p 5433 -d CPCIMDB_TEST -U dwtrans -w dwtrans2016");
+
+  unless ($rc) {
+      print "Could not invoke VSQL command
+";
+      return -1;
+  }
+
+# ------ Below are VSQL scripts ----------
+  print VSQL <<ENDOFINPUT;
+
+\\set ON_ERROR_STOP on
+
+--Step0:
+DELETE FROM dw_sdata.BBS_001_SEND_RECOURSE_DETAILS WHERE start_dt>=DATE('${TX_DATE_YYYYMMDD}');
+UPDATE dw_sdata.BBS_001_SEND_RECOURSE_DETAILS SET end_dt=DATE('2100-12-31') WHERE end_dt>=DATE('${TX_DATE_YYYYMMDD}') AND end_dt<>DATE('2100-12-31');
+
+--Step1:
+CREATE LOCAL TEMPORARY TABLE  T_57 ON COMMIT PRESERVE ROWS AS SELECT * FROM dw_sdata.BBS_001_SEND_RECOURSE_DETAILS WHERE 1=0;
+
+--Step2:
+INSERT  INTO T_57 (
+  ID,
+  DRAFT_ID,
+  ISSE_CURCD,
+  ISSE_AMT,
+  RCRS_TP,
+  APPLY_DATE,
+  REQ_CURCD,
+  REQ_AMT,
+  RCRS_RSNCD,
+  RCRSR_ROLE,
+  RCRSR_CMONID,
+  RCRSR_NAME,
+  RCRSR_ACTNO,
+  RCRSR_UBANK,
+  RCRSR_AGCY_UBANK,
+  RCVGPRSN_CMON_ID,
+  RCVGPRSN_NAME,
+  RCVGPRSN_ACTNO,
+  RCVGPRSN_UBANK,
+  RCVGPRSN_AGCY_UBANK,
+  RECOURSE_STATUS,
+  ENDST_DATE,
+  CANCEL_DATE,
+  CANCEL_OPID,
+  CM_STATUS,
+  CM_ERR_PROCD,
+  ECDS_PRC_MSG,
+  SWT_BIZ_ID,
+  RCRS_RSN,
+  LAST_UPD_OPER_ID,
+  LAST_UPD_TIME,
+  AGREDTLS_ID,
+  start_dt,
+  end_dt)
+SELECT
+  N.ID,
+  N.DRAFT_ID,
+  N.ISSE_CURCD,
+  N.ISSE_AMT,
+  N.RCRS_TP,
+  N.APPLY_DATE,
+  N.REQ_CURCD,
+  N.REQ_AMT,
+  N.RCRS_RSNCD,
+  N.RCRSR_ROLE,
+  N.RCRSR_CMONID,
+  N.RCRSR_NAME,
+  N.RCRSR_ACTNO,
+  N.RCRSR_UBANK,
+  N.RCRSR_AGCY_UBANK,
+  N.RCVGPRSN_CMON_ID,
+  N.RCVGPRSN_NAME,
+  N.RCVGPRSN_ACTNO,
+  N.RCVGPRSN_UBANK,
+  N.RCVGPRSN_AGCY_UBANK,
+  N.RECOURSE_STATUS,
+  N.ENDST_DATE,
+  N.CANCEL_DATE,
+  N.CANCEL_OPID,
+  N.CM_STATUS,
+  N.CM_ERR_PROCD,
+  N.ECDS_PRC_MSG,
+  N.SWT_BIZ_ID,
+  N.RCRS_RSN,
+  N.LAST_UPD_OPER_ID,
+  N.LAST_UPD_TIME,
+  N.AGREDTLS_ID,
+  DATE('${TX_DATE_YYYYMMDD}'),
+  DATE('2100-12-31')
+FROM 
+ (SELECT
+  COALESCE(ID, 0 ) AS ID ,
+  COALESCE(DRAFT_ID, 0 ) AS DRAFT_ID ,
+  COALESCE(ISSE_CURCD, '' ) AS ISSE_CURCD ,
+  COALESCE(ISSE_AMT, 0 ) AS ISSE_AMT ,
+  COALESCE(RCRS_TP, '' ) AS RCRS_TP ,
+  COALESCE(APPLY_DATE, '' ) AS APPLY_DATE ,
+  COALESCE(REQ_CURCD, '' ) AS REQ_CURCD ,
+  COALESCE(REQ_AMT, 0 ) AS REQ_AMT ,
+  COALESCE(RCRS_RSNCD, '' ) AS RCRS_RSNCD ,
+  COALESCE(RCRSR_ROLE, '' ) AS RCRSR_ROLE ,
+  COALESCE(RCRSR_CMONID, '' ) AS RCRSR_CMONID ,
+  COALESCE(RCRSR_NAME, '' ) AS RCRSR_NAME ,
+  COALESCE(RCRSR_ACTNO, '' ) AS RCRSR_ACTNO ,
+  COALESCE(RCRSR_UBANK, '' ) AS RCRSR_UBANK ,
+  COALESCE(RCRSR_AGCY_UBANK, '' ) AS RCRSR_AGCY_UBANK ,
+  COALESCE(RCVGPRSN_CMON_ID, '' ) AS RCVGPRSN_CMON_ID ,
+  COALESCE(RCVGPRSN_NAME, '' ) AS RCVGPRSN_NAME ,
+  COALESCE(RCVGPRSN_ACTNO, '' ) AS RCVGPRSN_ACTNO ,
+  COALESCE(RCVGPRSN_UBANK, '' ) AS RCVGPRSN_UBANK ,
+  COALESCE(RCVGPRSN_AGCY_UBANK, '' ) AS RCVGPRSN_AGCY_UBANK ,
+  COALESCE(RECOURSE_STATUS, '' ) AS RECOURSE_STATUS ,
+  COALESCE(ENDST_DATE, '' ) AS ENDST_DATE ,
+  COALESCE(CANCEL_DATE, '' ) AS CANCEL_DATE ,
+  COALESCE(CANCEL_OPID, 0 ) AS CANCEL_OPID ,
+  COALESCE(CM_STATUS, '' ) AS CM_STATUS ,
+  COALESCE(CM_ERR_PROCD, '' ) AS CM_ERR_PROCD ,
+  COALESCE(ECDS_PRC_MSG, '' ) AS ECDS_PRC_MSG ,
+  COALESCE(SWT_BIZ_ID, 0 ) AS SWT_BIZ_ID ,
+  COALESCE(RCRS_RSN, '' ) AS RCRS_RSN ,
+  COALESCE(LAST_UPD_OPER_ID, 0 ) AS LAST_UPD_OPER_ID ,
+  COALESCE(LAST_UPD_TIME, '' ) AS LAST_UPD_TIME ,
+  COALESCE(AGREDTLS_ID, 0 ) AS AGREDTLS_ID 
+ FROM  dw_tdata.BBS_001_SEND_RECOURSE_DETAILS_${TX_DATE_YYYYMMDD}) N
+LEFT JOIN
+ (SELECT 
+  ID ,
+  DRAFT_ID ,
+  ISSE_CURCD ,
+  ISSE_AMT ,
+  RCRS_TP ,
+  APPLY_DATE ,
+  REQ_CURCD ,
+  REQ_AMT ,
+  RCRS_RSNCD ,
+  RCRSR_ROLE ,
+  RCRSR_CMONID ,
+  RCRSR_NAME ,
+  RCRSR_ACTNO ,
+  RCRSR_UBANK ,
+  RCRSR_AGCY_UBANK ,
+  RCVGPRSN_CMON_ID ,
+  RCVGPRSN_NAME ,
+  RCVGPRSN_ACTNO ,
+  RCVGPRSN_UBANK ,
+  RCVGPRSN_AGCY_UBANK ,
+  RECOURSE_STATUS ,
+  ENDST_DATE ,
+  CANCEL_DATE ,
+  CANCEL_OPID ,
+  CM_STATUS ,
+  CM_ERR_PROCD ,
+  ECDS_PRC_MSG ,
+  SWT_BIZ_ID ,
+  RCRS_RSN ,
+  LAST_UPD_OPER_ID ,
+  LAST_UPD_TIME ,
+  AGREDTLS_ID 
+ FROM dw_sdata.BBS_001_SEND_RECOURSE_DETAILS 
+ WHERE END_DT = DATE('2100-12-31') ) T
+ON N.ID = T.ID
+WHERE
+(T.ID IS NULL)
+ OR N.DRAFT_ID<>T.DRAFT_ID
+ OR N.ISSE_CURCD<>T.ISSE_CURCD
+ OR N.ISSE_AMT<>T.ISSE_AMT
+ OR N.RCRS_TP<>T.RCRS_TP
+ OR N.APPLY_DATE<>T.APPLY_DATE
+ OR N.REQ_CURCD<>T.REQ_CURCD
+ OR N.REQ_AMT<>T.REQ_AMT
+ OR N.RCRS_RSNCD<>T.RCRS_RSNCD
+ OR N.RCRSR_ROLE<>T.RCRSR_ROLE
+ OR N.RCRSR_CMONID<>T.RCRSR_CMONID
+ OR N.RCRSR_NAME<>T.RCRSR_NAME
+ OR N.RCRSR_ACTNO<>T.RCRSR_ACTNO
+ OR N.RCRSR_UBANK<>T.RCRSR_UBANK
+ OR N.RCRSR_AGCY_UBANK<>T.RCRSR_AGCY_UBANK
+ OR N.RCVGPRSN_CMON_ID<>T.RCVGPRSN_CMON_ID
+ OR N.RCVGPRSN_NAME<>T.RCVGPRSN_NAME
+ OR N.RCVGPRSN_ACTNO<>T.RCVGPRSN_ACTNO
+ OR N.RCVGPRSN_UBANK<>T.RCVGPRSN_UBANK
+ OR N.RCVGPRSN_AGCY_UBANK<>T.RCVGPRSN_AGCY_UBANK
+ OR N.RECOURSE_STATUS<>T.RECOURSE_STATUS
+ OR N.ENDST_DATE<>T.ENDST_DATE
+ OR N.CANCEL_DATE<>T.CANCEL_DATE
+ OR N.CANCEL_OPID<>T.CANCEL_OPID
+ OR N.CM_STATUS<>T.CM_STATUS
+ OR N.CM_ERR_PROCD<>T.CM_ERR_PROCD
+ OR N.ECDS_PRC_MSG<>T.ECDS_PRC_MSG
+ OR N.SWT_BIZ_ID<>T.SWT_BIZ_ID
+ OR N.RCRS_RSN<>T.RCRS_RSN
+ OR N.LAST_UPD_OPER_ID<>T.LAST_UPD_OPER_ID
+ OR N.LAST_UPD_TIME<>T.LAST_UPD_TIME
+ OR N.AGREDTLS_ID<>T.AGREDTLS_ID
+;
+
+--Step3:
+UPDATE dw_sdata.BBS_001_SEND_RECOURSE_DETAILS P 
+SET End_Dt=DATE('${TX_DATE_YYYYMMDD}')
+FROM T_57
+WHERE P.End_Dt=DATE('2100-12-31')
+AND P.ID=T_57.ID
+;
+
+--Step4:
+INSERT  INTO dw_sdata.BBS_001_SEND_RECOURSE_DETAILS SELECT * FROM T_57;
+
+COMMIT;
+
+ENDOFINPUT
+
+  close(VSQL);
+
+  my $RET_CODE = $? >> 8;
+
+  if ( $RET_CODE == 0 ) {
+      return 0;
+  }
+  else {
+      return 1;
+  }
+}
+
+# ------------ main function ------------
+sub main
+{
+   my $ret;
+   open(LOGONFILE_H, "${LOGON_FILE}");
+   ${LOGON_STR} = <LOGONFILE_H>;
+   close(LOGONFILE_H);
+   
+   # Get the decoded logon string
+   my($user,$passwd) = split(',',${LOGON_STR}); 
+   #my $decodepasswd = `${AUTO_HOME}/bin/IceCode.exe -d "$passwd" "$user"`;                     
+   #${LOGON_STR} = "|vsql -h 192.168.2.44 -p 5433 -d CPCIMDB_TEST -U ".$user." -w ".$decodepasswd;
+
+   # Call vsql command to load data
+   $ret = run_vsql_command();
+
+   print "run_vsql_command() = $ret";
+   return $ret;
+}
+
+# ------------ program section ------------
+if ( $#ARGV < 0 ) {
+   print "Usage: [perl 程序名 Control_File] (Control_File format: dir.jobnameYYYYMMDD or sysname_jobname_YYYYMMDD.dir) 
+";
+   print "
+";
+   exit(1);
+}
+
+# Get the first argument
+${CONTROL_FILE} = $ARGV[0];
+
+if (${CONTROL_FILE} =~/[0-9]{8}($|\.)/) {
+   ${TX_DATE_YYYYMMDD} = substr($&,0,8);
+}
+else{
+   print "Usage: [perl 程序名 Control_File] (Control_File format: dir.jobnameYYYYMMDD or sysname_jobname_YYYYMMDD.dir) 
+";
+   print "
+";
+   exit(1);
+}
+
+${TX_MON_DAY_MMDD} = substr(${TX_DATE_YYYYMMDD}, length(${TX_DATE_YYYYMMDD})-4,4);
+${TX_DATE} = substr(${TX_DATE_YYYYMMDD}, 0, 4)."-".substr(${TX_DATE_YYYYMMDD}, 4, 2)."-".substr(${TX_DATE_YYYYMMDD}, 6, 2);
+open(STDERR, ">&STDOUT");
+
+my $ret = main();
+
+exit($ret);

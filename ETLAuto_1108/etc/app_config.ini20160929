@@ -1,0 +1,105 @@
+[DEFAULT]
+
+#大数据平台数据接收Hadoop集群配置
+[HDFS]
+HDFS_URL1 = http://22.224.64.99:50070/webhdfs/v1   #hadoop webhdfs地址1,数据加载时优先连接地址
+HDFS_URL2 = http://22.224.64.100:50070/webhdfs/v1  #hadoop webhdfs地址2,数据加载时备用连接地址
+HDFS_ROOT = /data/expt                             #hdfs中分系统(如:99700010000)数据目录存放绝对路径
+HDFS_USER = hdfs                                   #hadoop集群系统安装用户名
+
+#VSQL连接Vertica配置信息
+[VERTICA]
+VSQL_NODE_COUNT = 128                              #vertica集群节点数量
+VSQL_IP_PREFIX = 22.224.65.                        #vertica集群节点IP前缀
+VSQL_IP_START = 1                                #vertica集群起始节点IP后缀
+VSQL_PORT = 5433                                   #vertica集群服务端口号
+VSQL_DATABASE = CPCIMDB                            #vertica集群数据库名
+VSQL_USER = dwpsbc                                  #后台ETL加工用户名
+VSQL_PASSWORD = 4ea07664eee9f71cdef4                   #后台ETL加工用户口令,需先调用encrypt.sh生成密文
+
+[EDW_VSQL]
+VSQL_NODE_COUNT = 2                               #vertica集群节点数量
+VSQL_IP_PREFIX = 22.224.65.                        #vertica集群节点IP前缀
+VSQL_IP_START = 171                                #vertica集群起始节点IP后缀
+VSQL_PORT = 5433                                   #vertica集群服务端口号
+VSQL_DATABASE = CPCIMDB_TEST                            #vertica集群数据库名
+VSQL_USER = dwpsbc                                 #后台ETL加工用户名
+VSQL_PASSWORD = 4ea07664eee9f71cdef4                 #后台ETL加工用户口令,需先调用encrypt.sh生成密文
+
+#公用SQL变量
+[PUBLIC_SQL_VARS]
+UNKNOWNDATE=19000101                               #未知日期
+MAXENDDATE=21001231                                #最大日期
+NUMCONSTANT=0                                      #默认数字取值
+CHRCONSTANT=                                       #默认字符取值
+
+#项目自定义SQL变量
+[EDW_DWT_SQL_VARS]
+SDDL=dw_tddl
+SDATA=dw_tdata
+PTEMP=CIMPTemp
+ 
+
+#大数据平台数据接收Hadoop集群配置
+[HDFS]
+HDFS_URL1 = http://22.224.64.99:50070/webhdfs/v1   #hadoop webhdfs地址1,数据加载时优先连接地址
+HDFS_URL2 = http://22.224.64.100:50070/webhdfs/v1  #hadoop webhdfs地址2,数据加载时备用连接地址
+HDFS_ROOT = /data/recv                             #hdfs中分系统(如:99700010000)数据目录存放绝对路径
+HDFS_USER = hdfs                                   #hadoop集群系统安装用户名
+
+#VSQL连接Vertica配置信息
+[CPCIM_VSQL]
+VSQL_NODE_COUNT = 128                              #vertica集群节点数量
+VSQL_IP_PREFIX = 22.224.65.                        #vertica集群节点IP前缀
+VSQL_IP_START = 1                                #vertica集群起始节点IP后缀
+VSQL_PORT = 5433                                   #vertica集群服务端口号
+VSQL_DATABASE = CPCIMDB                           #vertica集群数据库名
+VSQL_USER = dwpsbc                                   #后台ETL加工用户名
+VSQL_PASSWORD = 4ea07664eee9f71cdef4                     #后台ETL加工用户口令,需先调用encrypt.sh生成密文
+
+#vsql错误代码与作业返回值对应关系
+[VSQL_EXIT_CODE]
+4142 = 11 #Node failure during execution
+3781 = 12 #Invalid username or password
+3811 = 14 #did not fit in memory
+3814 = 14
+3815 = 14
+
+#公用SQL变量
+[PUBLIC_SQL_VARS]
+UNKNOWNDATE=19000101                               #未知日期
+MAXENDDATE=21001231                                #最大日期
+NUMCONSTANT=0                                      #默认数字取值
+CHRCONSTANT=                                       #默认字符取值
+
+#项目自定义SQL变量
+[CPCIM_SQL_VARS]
+SDDL=CIMSDDL
+SDATA=CIMSData
+PTEMP=CIMPTemp
+
+#FDM 项目组�start
+[FDM_VSQL]
+VSQL_NODE_COUNT = 2                              #vertica集群节点数量
+VSQL_IP_PREFIX = 22.224.65.                      #vertica集群节点IP前缀
+VSQL_IP_START = 171                                #vertica集群起始节点IP后缀
+VSQL_PORT = 5433                                 #vertica集群服务
+VSQL_DATABASE = CPCIMDB_TEST                          #vertica集群数据库名
+VSQL_USER = mart                                #后台ETL加工
+#VSQL_PASSWORD2 = 5cb27463e5e9a4               #后台ETL加工用户口令,需先调用encrypt.sh生成密文
+VSQL_PASSWORD =  47b67463bdb8f6              #后台ETL加工用户口令,需先调用encrypt.sh生成密文
+[FDM_SQLPLUS]
+SQLPLUS_NODE_COUNT = 1                           #oracle集群节点数量
+SQLPLUS_IP_PREFIX = 22.224.34.
+SQLPLUS_IP_START = 13
+SQLPLUS_PORT = 1521
+SQLPLUS_DATABASE = FDM
+SQLPLUS_USER = app
+SQLPLUS_PASSWORD = 1be53523b9bc
+[FDM_SQL_VARS]
+MINDATE=19000101
+MAXDATE=29991231
+hadoop_namenode_id=22.224.64.255
+hadoop_user=hdfs
+delimiter=^
+path=/psbcma/upload/
